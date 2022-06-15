@@ -1,0 +1,120 @@
+In order to accelerate the execution of ANN, FPGAs have been considered and researched. In recent years, numerous FPGA designs for ANN training and inference have been proposed with the key objective of designing a system that provides high energy efficiency while mainaining low latencies. This section numerous strategies are being summarized in order to identify the best approach when selecting and designing an FPGA that provides efficient ANN acceleration.
+
+\subsection{Algorithmic Optimization}
+
+Algorithmic optimization applies computational transformation or vectorization of data in order to reduce the number of performed arithmetic operations and memory accesses. Mainly CPUs and GPUs use these techniques. However, various FPGAs based neural network implementations are using algorithmic optimization\cite{CnnFpgaSurvey}.
+
+\subsubsection{General Matrix Multiplication}
+The general matrix multiplication algorithm (GEMM) minimizes the required memory accesses for vector-matrix multiplications by using same-weight multiplications into a vector. The main advantage of this method is that a single weight is fetched only once. The figure below visualizes that the reuse of a weight matrix increases by a factor of N for N batches.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{img/batching.png}
+    \caption{Batching that converts vector matrix multiplication into matrix-matrix multiplication\cite{learningOnHardware}}
+    \label{fig:batching}
+\end{figure}
+
+For feed-forward layers, batching increases the utilization of single instruction multiple data (SIMD) processors\cite{CnnAdvances}. However, if real-time applications use batching, it has to be ensured that the latency requirements are not violated, since batching may increase the latency\cite{CnnAdvances}.
+
+\subsubsection{Fast Fourier Transformation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{img/fft.png}
+    \caption{Fast Fourier Transformation\cite{efficienfProcessingDnn}}
+    \label{fig:fft}
+\end{figure}
+
+The Fast Fourier Transform is a well known algorithm that reduces the arithmetic complexity from 
+$O(N_K^2N_O^2)$ to $O(N_O^2log_2(N_O))$, with $N_K \times N_K$ is the filter size and $N_O \times N_O$ is the output size\cite{efficienfProcessingDnn}.
+
+However, there are several drawbacks to using FFT:
+\begin{enumerate}
+    \item The benefits of FFTs decrease with filter size.
+    \item The size of the FFT is dictated by the output feature map size which is often much larger than the filter.
+    \item The coefficients in the frequency domain are complex
+\end{enumerate}
+As a result, while FFT reduces computation, it requires larger storage capacity and bandwidth. Also, since modern neural networks mainly use small filter sizes FFT has lost importance in modern hardware accelerators.
+
+\subsection{Accelerating Nested Loops}
+When designing a neural network hardware accelerator, the main idea is to parallelize operations. From an algorithmic point of view, matrix computations can be seen as nested loops. There are a number of approaches in order to accelerate the computation of these loops:
+\begin{itemize}
+    \item Loop recording
+    \item Loop unrolling
+    \item Loop pipelining
+    \item Loop tiling
+\end{itemize}
+When using matrixes, efficient memory allocation must also be taken into consideration; loop tiling is used for partitioning.\cite{CnnFpgaSurvey2}
+
+\subsubsection{Loop Recording}
+The main goal is to avoid redundant memory accesses and maximize cache usage efficiency while decreasing the computation time\cite{CnnFpgaSurvey2, CnnAdvances}. This can result in significant differences in performance\cite{CnnAdvances}.
+
+\subsubsection{Loop unrolling}
+Independent loops can be executed simultaneously by using parallel hardware. The main goal is to decrease the computation time by increasing the hardware utilization\cite{CnnFpgaSurvey2, CnnAdvances}.
+
+\subsubsection{Loop pipelining}
+The goal is to divide the nested loops into sequential steps, which can be performed in parallel\cite{CnnAdvances}. The implementation of pipelining is dependent on the architecture of the hardware accelerator.
+
+\subsubsection{Loop tiling}
+Loop tiling partitions the cache into tiles, which load as a whole chunk from memory, to avoid the data in the cache to supersede before the usage\cite{CnnAdvances}. In terms of ASICs and FPGAs, loop tiling refers to the efficient usage of the available on-chip memory.
+
+\subsection{ANN compression methods}
+To narrow the gap between accuracy requirement and hardware performance whilst increasing computational efficiency, two approaches are usually followed and implemented:
+\begin{itemize}
+    \item Quantization
+    \item Pruning
+    \item Knowledge Distillation
+\end{itemize}
+
+\subsubsection{Weight and Data Quantization}
+Several methods have been proposed to quantize the NN weights after training, using 16-bit\cite{deepLearningLimitedNumericalPrecision} and 8-bit\cite{8BitApprox} fixed point representation, which presented slight but not dramatic improvements with respect to classification accuracy. However, logarithmic quantization\cite{NetworkQuantization} has provided a significant more efficient inference, when each quantization point is a power of two as fixed-point multiplication can be replaced with bit shift operations that correspond to the power of two.
+In addition to weight quantization, data quantization is quintessential with respect to efficiency improvement. Data quantization reduces the cost of memory access for intermediate output layers\cite{NetworkQuantization} in a multiple layer ANN and also the computation cost of inference. However, low precision quantization of activation (i.e. 1-4 bits) leads to a significant degradation in classification accuracy when being compared to weight quantization\cite{weightsActivationsConstrained}. Due to these considerations, the trend is to use 8-bit linear quantization.
+
+\subsubsection{Weight Pruning}
+The majority of weights in an ANN (up to 90\% for large models) may be pruned (set to zero) without providing a significant impact on the accuracy of the classification. A pruned ANN may provide sparsely distributed weights with an irregular sparsity structure, which is generally difficult to implement in an efficient manner using conventional hardware such as the GPU\cite{deepCompression}. The main advantage of pruning consists of reduced disk storage and computational effort. However, when pruning, retraining of the neural network is required in order to avoid accuracy loss\cite{learningOnHardware}.
+Pruning can be executed through various methods:
+\begin{itemize}
+    \item Fine-grained pruning in which any weight that finds to be unimportant will be pruned.
+    \item Vector and kernel-level pruning where pruning is constrained to vectors of the neural network
+    \item Group-level pruning in which a filter that can be inputted in the neural network will act as the pruning method.
+    \item Filter-level pruning in which the pruning method focuses on reducing the dimension of a layer.
+\end{itemize}
+
+\subsubsection{Knowledge Distillation}
+The main idea behind the knowledge distillation concept is that a single model will not be able to provide higher accuracy models when compared to the averaging predictions of different models. Since using multiple neural networks is not feasible since it will provide additional computational effort, knowledge distillation combines the knowledge of different networks into a newer, simpler model. Based on the output of the knowledge-providing neural networks, the new neural network's biases and weights are adjusted using stochastic gradient descent\cite{efficientProcessingNNSurvey}. As such, using knowledge distillation can provide the same or even more accurate prediction whilst keeping into account the computation efficiency factor.
+
+\subsection{FPGA Hardware Architectures}
+Most FPGA accelerators use one of the following 2 hardware structures: Single computation engines and streaming architectures\cite{mappingCnnFpga}.
+
+\subsubsection{Single computation engines}
+The single computation engines favours flexibility over customization and is usually implemented in a systolic array\cite{mappingCnnFpga} that executes ANN layers sequentially. The control of the hardware and the scheduling of operations if performed by software means. In a systolic array, each processing element can exchange data with the adjacent processing element, which enables the systolic array to have a high data rate. However, inputs, outputs and weights are being transferred to and from the external memory, which ultimately leads to a bottleneck.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{img/singleComputationEngine.png}
+    \caption{Single Computation Engine example\cite{mappingCnnFpga}}
+    \label{fig:singleComputationEngine}
+\end{figure}
+
+The benefit of using systolic arrays is that they are easily adaptable for different ANN structures. However, this flexibility comes with the price of reduced efficiency, which may lead to different performance issues during an ANN application.
+
+\subsubsection{Streaming architectures}
+As opposed to the single computation engines, streaming architectures implement an independent and specialized processing elements for each layer. The data is pipelined through the hardware accelerator. Even so, the processing elements must be designed so that the calculations of each individual layer takes the same amount of processing time to avoid idling. The weights are stationary required for a specific layer, which reduces global data transfer\cite{learningOnHardware}. This enables the streaming architecture to implement a highly efficient accelerator. However, when being compared to the single computation engine architecture, they prove to be less flexible since they are mainly optimized for a single neural network structure\cite{learningOnHardware}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{img/streamingArhitecture.png}
+    \caption{Streaming architecture example\cite{learningOnHardware}}
+    \label{fig:streamingArchitecture}
+\end{figure}
+
+\subsection{Hardware accelerator implementations}
+
+\subsubsection{32-bit floating-point single computation engine \cite{exampleFPGA2}}
+In 2015 Zhang et al. introduced a 32-bit floating-point single computation engine on a high-end Xilinx FPGA using HLS. The accelerator uses 64 two-level unrolled processing elements operating with 100MHz. Each processing element has 7 inputs for activations and weights and 1 bias input. Additionally, buffers are applied to input and output. The size of the buffers on-chip is fixed using loop tiling. A MicroBlaze CPU controls the data flow of the hardware accelerator. The system has a power consumption of 18.61W. Due to the high precision processing elements, no accuracy loss occurs. However, the high precision results in a low throughput. For this reason, this design has compared to others a poor implementations efficiency.
+
+\subsubsection{10-bit SIMD engine \cite{exampleFPGA1}}
+In 2019 Sudarshan Srinivasan et al. implemented an FPGA-based accelerator with 8 bit activation and 2 bit weights. The FPGA architecture provided a highly configurable SIMD engine and the accelerator was written in RTL. The optimization methods selected by the authors were only the FPGA pipelining and quantization of data. It implemented the ResNet50 convolutional neural network. The paper presented a top-1 accuracy of 71.1\%. It efficiently implemented a ResNet50 network with 8-bit activations and ternary weights on an FPGA. The design is capable of performing 16K MAC operations per cycle.
+
+\subsubsection{16-bit float-point single computation engine \cite{exampleFPGA3}}
+Aydonat et al. use 16-bit floating-point operations for accumulation and 16 bit fixed point operation
+for multiplication to reduce the overhead from using FP32 digital signal processings. The hardware accelerator structure uses serial processing elements, optimized for computing Winograd transformed feature maps. The Winograd approach that achieves over 60\% digital signal processing efficiency and uses the Winograd transform to significantly reduce the digital signal processings required to perform the convolution layers. 

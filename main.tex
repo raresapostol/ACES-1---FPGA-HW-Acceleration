@@ -1,0 +1,62 @@
+% vim: set tw=78 sts=2 sw=2 ts=8 aw et ai:
+\documentclass[12pt]{article}
+
+\usepackage[paper=a4paper, top=2cm, bottom=3cm, left=2.5cm, right=2.5cm]{geometry}
+
+\usepackage{ucs}
+\usepackage[utf8x]{inputenc}
+\usepackage[english]{babel}
+%\usepackage{hyperref}	  % use \url{http://$URL} or \href{http://$URL}{Name}
+\usepackage{underscore}	  % underscores need not be escaped
+\usepackage{subfigure}
+\usepackage{verbatim}
+\usepackage{float}
+\usepackage{booktabs}     % professional tables
+\usepackage{parskip}
+
+% Support for including graphics
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+
+\title{FPGA acceleration of Machine Learning (ANN training and inference)}
+
+\author{Alexandru Rares Apostol\\
+Faculty of Electronics, Telecommunications and Information Technology\\
+University POLITEHNICA of Bucharest\\
+Splaiul Independenței 313, Bucharest, Romania, 060042 \\
+\emph{alexandru.apostol@upb.ro}}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\input{src/abstract}
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+\input{src/introduction}
+
+\section{Artificial Neural Network}
+\label{sec:artificialNeuron}
+\input{src/artificialNeuron}
+
+\section{Field-Programmable Gate Arrays}
+\label{sec:fpgaVerilog}
+\input{src/fpgaVerilog}
+
+\section{Accelerating ANNs on FPGAs}
+\label{sec:accelAnnFpga}
+\input{src/accelAnnFpga}
+
+\section{Conclusion}
+\label{sec:conclusion}
+\input{src/conclusion}
+
+\bibliographystyle{abbrv}
+\bibliography{ref}
+
+\end{document}
